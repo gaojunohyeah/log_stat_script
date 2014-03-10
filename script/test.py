@@ -1,39 +1,24 @@
 #!/usr/bin/python
+# -*- coding:utf-8 -*-
 import xlrd
+import datetime
+import os
 
-
-cardLogReasonDic = {'JADE_GAIN_MDDR': 401,
-                    'JADE_GAIN_LB': 402,
-                    'JADE_CREATE_ROLE': 403,
-                    'JADE_COL': 404,
-                    'JADE_DUNGEON': 405,
-                    'JADE_GACHA': 406,
-                    'JADE_ACTB': 407,
-                    'JADE_CARD_NUM': 408,
-                    'JADE_COST': 409,
-                    'JADE_BUQIAN': 410,
-                    'JADE_GAIN_GM': 411,
-                    'JADE_RAISED': 412,
-                    'JADE_LVLLIMIT': 413,
-                    'JADE_CHARGE_GIFT': 414}
-
-#print len(cardLogReasonDic)
-
-print (4007 in cardLogReasonDic.values())
-# cardLogReasonDic["a"] =10
-print cardLogReasonDic.has_key("a")
-
-#print dir(list)
-
-#print help(list)
-
+print datetime.date.today()
+st = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+finalcial_log_path = "E:/work/workspace/sgpoker/logs/stat/jade_log.log"
+print st
+print finalcial_log_path, os.path.exists(finalcial_log_path)
+print finalcial_log_path + st, os.path.exists(finalcial_log_path + st)
 # gacha_excel_path = "E:/work/workspace/sgpoker_resources/config/common/gacha.xls"
+dungeon_excel_path = "E:/work/workspace/sgpoker_resources/config/common/dungeon.xls"
+stage_excel_path = "E:/work/workspace/sgpoker_resources/config/common/stage.xls"
+
+data = xlrd.open_workbook(dungeon_excel_path)
+table = data.sheets()[2]
 #
-# data = xlrd.open_workbook(gacha_excel_path)
-# table = data.sheets()[3]
-#
-# types =  table.col_values(0)
-# print types
+types =  table.col_values(0)
+print types
 # for i in range(0,5):
 #     types.pop(0)
 # types_names = table.col_values(1)
