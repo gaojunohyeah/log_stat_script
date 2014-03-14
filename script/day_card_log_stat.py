@@ -1,50 +1,70 @@
 #!/usr/bin/python
+# -*- coding:utf-8 -*-
 import json
 import xlrd
 import time
 import datetime
 import os
-# init var of base
+import uuid
+from elasticsearch import Elasticsearch
+# 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
-# init file path
+# elasticsearch 连接参数
+es_host = 'localhost'
+index_name = 'stat_log-' + time.strftime("%Y-%m", )
+statType = {
+    'SCARD_SOURCE_STAT': 'scard_source_stat',
+    'SSCARD_ADD_STAT': 'sscard_add_stat'
+}
+doc = {
+    'message': {
+    },
+    '@timestamp': timestamp,
+    'type': ''
+}
+# 文件路径
 card_log_path = "E:/work/workspace/sgpoker/logs/stat/card_log.log"
 
-sscard_add_stat_path = "E:/work/workspace/sgpoker/logs/stat/sscard_add_stat.log"
-scard_source_stat_path = "E:/work/workspace/sgpoker/logs/stat/scard_source_stat.log"
+# sscard_add_stat_path = "E:/work/workspace/sgpoker/logs/stat/sscard_add_stat.log"
+# scard_source_stat_path = "E:/work/workspace/sgpoker/logs/stat/scard_source_stat.log"
 user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
 
 gacha_excel_path = "E:/work/workspace/sgpoker_resources/config/common/gacha.xls"
-# card_log reason dictionary
-cardLogReasonDic_Get = {'CARD_CREATE_ROLE': 201,
-                        'CARD_CREATE_ROLE_A': 202,
-                        'CARD_BOSSDROP_ADD': 203,
-                        'CARD_GACHA_ADD': 204,
-                        'CARD_COMB_ADD': 205,
-                        'CARD_GIFT_ADD': 206,
-                        'CARD_WEIXIN': 219}
-
-cardLogReasonDic_Consume = {'CARD_HECHENG_CONSUME_DEL': 207,
-                            'CARD_IMP_DEL': 208,
-                            'CARD_IMP_CONSUME_DEL': 209,
-                            'CARD_SELL_DEL': 210,
-                            'CARD_GM': 218}
-
-cardLogReasonDic_Other = {'CARD_CHANGE': 211,
-                          'CARD_A_CHANGE': 212,
-                          'CARD_SONCARDON': 213,
-                          'CARD_SONCARDOUT': 214,
-                          'CARD_GETXP': 215,
-                          'CARD_LVLUP': 216,
-                          'CARD_SKILL_LVLUP': 217}
-# other static constants
+# 卡牌日志 原因字典
+# 获取卡牌字典
+cardLogReasonDic_Get = {'CARD_CREATE_ROLE': 201,  # 卡片获得_初次登录送普牌
+                        'CARD_CREATE_ROLE_A': 202,  # 卡片获得_初次登录玩家选A牌
+                        'CARD_BOSSDROP_ADD': 203,  # 卡片获得_怪物掉落
+                        'CARD_GACHA_ADD': 204,  # 卡片获得_抽奖
+                        'CARD_COMB_ADD': 205,  # 卡片获得_进化
+                        'CARD_GIFT_ADD': 206,  # 卡片获得_礼包
+                        'CARD_WEIXIN': 219  # 卡牌获得_微信
+}
+# 消耗卡牌字典
+cardLogReasonDic_Consume = {'CARD_HECHENG_CONSUME_DEL': 207,  # 卡片消耗_合成材料
+                            'CARD_IMP_DEL': 208,  # 卡片消耗_进化卡
+                            'CARD_IMP_CONSUME_DEL': 209,  # 卡片消耗_进化材料
+                            'CARD_SELL_DEL': 210,  # 卡片消耗_出售
+                            'CARD_GM': 218  # 卡片删除_gm后台添加/删除
+}
+# 其他卡牌字典
+cardLogReasonDic_Other = {'CARD_CHANGE': 211,  # 普通卡片替换
+                          'CARD_A_CHANGE': 212,  # A卡片替换
+                          'CARD_SONCARDON': 213,  # 子卡装备
+                          'CARD_SONCARDOUT': 214,  # 子卡卸下
+                          'CARD_GETXP': 215,  # 卡片经验_获得经验
+                          'CARD_LVLUP': 216,  # 卡片升级
+                          'CARD_SKILL_LVLUP': 217  # 卡片技能升级
+}
+# 其他静态常量
 S_CARD_LABEL = 5
 SS_CARD_LABEL = 7
 gacha_type_dic = {}
-# global attribute
+# 全局变量
 ssCardAddNum = 0
 ssCardAddUser = []
 cardSourceNumDic = {}
@@ -53,7 +73,7 @@ gacha_types_names = []
 sscardSourceStatMap = {}
 userOperationNumDic = {}
 
-# define stat object
+# 定义统计对象
 # SSCardAddStatBean
 class SSCardAddStatBean(object):
     def __init__(self, gameCode, serverId, regionId, ssCardAddNum, ssCardAddUserNum, timestamp):
@@ -66,30 +86,29 @@ class SSCardAddStatBean(object):
 
 
 # function : logtojson
-# load log file line to json object
+# 读取文件行转换为json对象
 def logtojson(line):
-    # print line
     s = json.loads(line)
     return s
 
 
 # function : dayCardStat
-# stat card_log
+# 统计卡牌日志
 def dayCardStat(jsonLine):
     global ssCardAddNum
 
-    # should be the get card log, not consume card or other reason
+    # 必须是卡牌新增类型，才统计卡牌新增以及来源统计
     if jsonLine["message"]["reason"] in cardLogReasonDic_Get.values():
-        # stat day sscard add num log
-        # cardType should be sscard or even higher
+        # 统计每日SS卡新增数量
+        # 卡牌类型需要是SS级别及以上
         if jsonLine["message"]["cardQuality"] >= SS_CARD_LABEL:
             ssCardAddNum += 1
-            # this user never get sscard before int today
+            # 对获得SS卡的用户进行排重
             if ssCardAddUser.index(jsonLine["message"]["charId"]) < 0:
                 ssCardAddUser.append(jsonLine["message"]["charId"])
 
-        # stat day >=scard source log
-        # cardType should be scard or even higher
+        # 统计每日S卡以上来源方式
+        # 卡牌类型需要时S级别及以上
         if jsonLine["message"]["cardQuality"] >= S_CARD_LABEL:
             if (jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CREATE_ROLE")
                 and jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CREATE_ROLE_A")):
@@ -125,10 +144,7 @@ def dayCardStat(jsonLine):
                 else:
                     cardSourceNumDic[type_name] = 1
 
-                    # stat day gacha add log
-
-
-    # stat day card operate num
+    # 统计每日卡牌操作次数数据
     if jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_COMB_ADD"):
         if (userOperationNumDic.has_key("CARD_COMB_ADD")):
             userOperationNumDic["CARD_COMB_ADD"] += 1
@@ -156,10 +172,7 @@ def dayCardStat(jsonLine):
             userOperationNumDic["CARD_A_CHANGE"] = 1
 
 
-            #def
-
-
-# transform object to dictionary
+# 将object对象转换为字典
 def object2dict(obj):
     d = {}
     #d["__class__"] = obj.__class__.__name__
@@ -169,60 +182,100 @@ def object2dict(obj):
 
 
 def loadGachaExcel():
-    # load gacha type info
+    # 加载抽卡类型excel
     data = xlrd.open_workbook(gacha_excel_path)
     table = data.sheets()[3]
 
-    # load gacha types
+    # 读取抽卡类型信息
     types = table.col_values(0)
     for i in range(5, len(types), 1):
         gacha_types.append(int(types[i]))
 
-    # load gacha types names
+    # 读取抽卡类型名称信息
     gacha_types_names = table.col_values(1)
     for i in range(0, 5, 1):
         gacha_types_names.pop(0)
 
 
-# load gacha excel config info
+# 加载抽卡excel配置信息
 loadGachaExcel()
 
+# 是否存在昨天的日志文件，如果没有，则读取目前的日志文件
 if os.path.exists(card_log_path + yestodayLogName):
     card_log_path += yestodayLogName
-# do stat
+# 读取卡牌日志文件开始进行卡牌日志统计
 for line in open(card_log_path):
     jsonLine = logtojson(line, )
-    # stat card log info
+    # 统计卡牌日志
     dayCardStat(jsonLine)
-    #
 
 
-# output sscard_add_stat into log file
-sscard_add_stat_object = SSCardAddStatBean(gameCode, serverId, regionId, ssCardAddNum, len(ssCardAddUser), timestamp)
-sscard_add_stat_log = object2dict(sscard_add_stat_object)
-sscard_add_file = open(sscard_add_stat_path, 'a')
-try:
-    sscard_add_file.write(("{'message':" + str(sscard_add_stat_log) + "}").replace("'", "\"") + "\n")
-finally:
-    sscard_add_file.close()
 
-# output scard_source_stat into log file
-sscardSourceStatMap["gameCode"] = gameCode
-sscardSourceStatMap["serverId"] = serverId
-sscardSourceStatMap["regionId"] = regionId
-sscardSourceStatMap["timestamp"] = timestamp
-for key, value in cardSourceNumDic.items():
-    sscardSourceStatMap[key] = value
-scard_source_file = open(scard_source_stat_path, 'a')
-try:
-    scard_source_file.write(("{'message':" + json.dumps(sscardSourceStatMap) + "}").replace("'", "\"") + "\n")
-finally:
-    scard_source_file.close()
+# # output sscard_add_stat into log file
+# sscard_add_stat_object = SSCardAddStatBean(gameCode, serverId, regionId, ssCardAddNum, len(ssCardAddUser), timestamp)
+# sscard_add_stat_log = object2dict(sscard_add_stat_object)
+# sscard_add_file = open(sscard_add_stat_path, 'a')
+# try:
+#     sscard_add_file.write(("{'message':" + str(sscard_add_stat_log) + "}").replace("'", "\"") + "\n")
+# finally:
+#     sscard_add_file.close()
 
-# output card operate num into middle log file
+# # output scard_source_stat into log file
+# sscardSourceStatMap["gameCode"] = gameCode
+# sscardSourceStatMap["serverId"] = serverId
+# sscardSourceStatMap["regionId"] = regionId
+# sscardSourceStatMap["timestamp"] = timestamp
+# for key, value in cardSourceNumDic.items():
+#     sscardSourceStatMap[key] = value
+# scard_source_file = open(scard_source_stat_path, 'a')
+# try:
+#     scard_source_file.write(("{'message':" + json.dumps(sscardSourceStatMap) + "}").replace("'", "\"") + "\n")
+# finally:
+#     scard_source_file.close()
+
+
+# 输出卡牌操作统计数据至用户操作中间文件
 card_operate_file = open(user_operation_midfile_path, 'a')
 try:
     for key, value in userOperationNumDic.items():
         card_operate_file.write("{\"" + str(key) + "\":" + str(value) + "}\n")
 finally:
     card_operate_file.close()
+
+
+# 初始化ES连接
+es = Elasticsearch([
+    {'host': es_host},
+])
+
+# 封装SS卡牌新增统计对象
+doc['type'] = statType['SSCARD_ADD_STAT']
+sscard_add_stat_object = SSCardAddStatBean(gameCode, serverId, regionId, ssCardAddNum, len(ssCardAddUser), timestamp)
+doc['message'] = object2dict(sscard_add_stat_object)
+# 向ES中put统计数据
+res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+if (not res['ok']):
+    print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
+        time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)
+
+
+# 封装卡牌来源统计对象
+sscardSourceStatMap["gameCode"] = gameCode
+sscardSourceStatMap["serverId"] = serverId
+sscardSourceStatMap["regionId"] = regionId
+sscardSourceStatMap["timestamp"] = timestamp
+for key, value in cardSourceNumDic.items():
+    sscardSourceStatMap[key] = value
+
+doc['type'] = statType['SCARD_SOURCE_STAT']
+for key, value in sscardSourceStatMap.items():
+    doc['message'][key] = value
+# 向ES中put统计数据
+res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+if (not res['ok']):
+    print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
+        time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)
+
+
+
+

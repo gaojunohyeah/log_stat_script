@@ -1,21 +1,36 @@
 #!/usr/bin/python
+# -*- coding:utf-8 -*-
 import json
 import MySQLdb
 import time
-# init var of base
+import uuid
+from elasticsearch import Elasticsearch
+# 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
-#init file path
-vipLv_stat_path = "E:/work/workspace/sgpoker/logs/stat/vip_stat.log"
-#init db
+# 数据库参数
 db_ip = "127.0.0.1"
 db_user = "root"
 db_pwd = ""
 db_db = "sg2"
 db_port = 3306
-# global attribute
+# elasticsearch 连接参数
+es_host = 'localhost'
+index_name = 'stat_log-' + time.strftime("%Y-%m", )
+statType = {
+    'VIP_STAT': 'vip_stat'
+}
+doc = {
+    'message': {
+    },
+    '@timestamp': timestamp,
+    'type': ''
+}
+# 文件路径
+# vipLv_stat_path = "E:/work/workspace/sgpoker/logs/stat/vip_stat.log"
+# 全局变量
 totalVip = 0
 vipLvMap = {}
 
@@ -40,8 +55,28 @@ try:
 except MySQLdb.Error, e:
     print "Mysql Error %d: %s" % (e.args[0], e.args[1])
 
-vipoutput = open(vipLv_stat_path, 'a')
-try:
-    vipoutput.write(("{'message':" + json.dumps(vipLvMap) + "}").replace("'", "\"") + "\n")
-finally:
-    vipoutput.close()
+# vipoutput = open(vipLv_stat_path, 'a')
+# try:
+#     vipoutput.write(("{'message':" + json.dumps(vipLvMap) + "}").replace("'", "\"") + "\n")
+# finally:
+#     vipoutput.close()
+
+# 初始化ES连接
+es = Elasticsearch([
+    {'host': es_host},
+])
+
+# 封装VIP对象
+doc['type'] = statType['VIP_STAT']
+for key, value in vipLvMap.items():
+    doc['message'][key] = value
+# 向ES中put统计数据
+res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+if (not res['ok']):
+    print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
+        time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)
+
+# res = es.get(index="test-index", doc_type='tweet', id='1')
+# print (res['_source'])
+
+
