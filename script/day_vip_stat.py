@@ -5,20 +5,25 @@ import MySQLdb
 import time
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # 数据库参数
 db_ip = "127.0.0.1"
 db_user = "root"
 db_pwd = ""
-db_db = "sg2"
+db_db = "sgpoker"
 db_port = 3306
 # elasticsearch 连接参数
 es_host = 'localhost'
-index_name = 'stat_log-' + time.strftime("%Y-%m", )
+index_name = 'stat_log-' + time.strftime("%Y.%m", )
 statType = {
     'VIP_STAT': 'vip_stat'
 }
@@ -71,7 +76,7 @@ doc['type'] = statType['VIP_STAT']
 for key, value in vipLvMap.items():
     doc['message'][key] = value
 # 向ES中put统计数据
-res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+res = es.index(index=index_name, doc_type=doc['type'], id=uuid.uuid1(), body=doc)
 if (not res['ok']):
     print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
         time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)

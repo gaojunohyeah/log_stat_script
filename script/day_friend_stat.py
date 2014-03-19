@@ -4,20 +4,25 @@ import MySQLdb
 import time
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # init var of base
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # 数据库参数
 db_ip = "127.0.0.1"
 db_user = "root"
 db_pwd = ""
-db_db = "sg2"
+db_db = "sgpoker"
 db_port = 3306
 # elasticsearch 连接参数
 es_host = 'localhost'
-index_name = 'stat_log-' + time.strftime("%Y-%m", )
+index_name = 'stat_log-' + time.strftime("%Y.%m", )
 statType = {
     'FRIEND_NUM_STAT': 'friend_num_stat'
 }
@@ -69,10 +74,10 @@ def doFriendSearch():
 
         cur.execute(
             'select count(*) countNum,ri.id charId from rolefriendrelation rf,role_info ri where rf.roleid=ri.id group by ri.id;')
-        result = cur.fetchone()
+        result = cur.fetchall()
         # 将查询结果放置到字典中
         for r in result:
-            friendNumDic[str(r[1])] = int(r[0])
+            friendNumDic[r[1]] = int(r[0])
 
         cur.execute(
             'select count(*) countNum,ri.id charId from rolefriendrelation rf,role_info ri where rf.friendid=ri.id group by ri.id;')
@@ -80,9 +85,9 @@ def doFriendSearch():
         # 判断字典中是否已经有该玩家的记录，如果有，则累加，如果没有，则直接赋值
         for r in result:
             if (not friendNumDic.has_key(r[1])):
-                friendNumDic[str(r[1])] = int(r[0])
+                friendNumDic[r[1]] = int(r[0])
             else:
-                friendNumDic[str(r[1])] += int(r[0])
+                friendNumDic[r[1]] += int(r[0])
 
         cur.close()
         conn.close()
@@ -96,7 +101,7 @@ def doFriendStat():
     for key, value in friendNumDic.items():
         # 判断该用户的好友数量所在的区间并统计
         for i in range(0, len(friendNumLabelArea), 1):
-            if (value >= friendNumLabelArea[0] and value <= friendNumLabelArea[1]):
+            if (value >= friendNumLabelArea[i][0] and value <= friendNumLabelArea[i][1]):
                 friendStatDic[i][1].add(key)
 
 
@@ -112,11 +117,12 @@ es = Elasticsearch([
 
 # 封装每日好友数量统计对象
 doc['type'] = statType['FRIEND_NUM_STAT']
+doc['message'] = {}
 # 向ES中put统计数据
-for value in friendStatDic.items():
+for key,value in friendStatDic.items():
     obj = FriendStatBean(gameCode, serverId, regionId, timestamp, value[0], len(value[1]))
     doc['message'] = object2dict(obj)
-    res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+    res = es.index(index=index_name, doc_type=doc['type'], id=uuid.uuid1(), body=doc)
     if (not res['ok']):
         print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
             time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)

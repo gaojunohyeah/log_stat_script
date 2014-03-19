@@ -4,16 +4,23 @@ import json
 import time
 import datetime
 import os
+import sys
 # 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # 文件路径
-gift_log_path = "E:/work/workspace/sgpoker/logs/stat/gift_log.log"
+# gift_log_path = "E:/work/workspace/sgpoker/logs/stat/gift_log.log"
+gift_log_path = "/data/game_server/logs/stat/gift_log.log"
 
-user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+# user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+user_operation_midfile_path = "/data/game_server/logs/stat/user_operate_midfile.log"
 # 礼包日志 原因字典
 giftLogReasonDic = {'GIFT_GET': 601,  # 礼包_获得
                     'GIFT_OPEN': 602,  # 礼包_打开
@@ -35,7 +42,7 @@ def dayGiftStat(jsonLine):
 
     # 统计每日礼包操作次数数据
     if jsonLine["message"]["reason"] == giftLogReasonDic.get("GIFT_GET"):
-        if (userOperationNumDic.has_key("GIFT_GET")):
+        if (not userOperationNumDic.has_key("GIFT_GET")):
             userOperationNumDic["GIFT_GET"] = 0
         userOperationNumDic["GIFT_GET"] += 1
 

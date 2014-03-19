@@ -7,15 +7,20 @@ import datetime
 import os
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # elasticsearch 连接参数
 es_host = 'localhost'
-index_name = 'stat_log-' + time.strftime("%Y-%m", )
+index_name = 'stat_log-' + time.strftime("%Y.%m", )
 statType = {
     'SCARD_SOURCE_STAT': 'scard_source_stat',
     'SSCARD_ADD_STAT': 'sscard_add_stat'
@@ -27,13 +32,16 @@ doc = {
     'type': ''
 }
 # 文件路径
-card_log_path = "E:/work/workspace/sgpoker/logs/stat/card_log.log"
+# card_log_path = "E:/work/workspace/sgpoker/logs/stat/card_log.log"
+card_log_path = "/data/game_server/logs/stat/card_log.log"
 
 # sscard_add_stat_path = "E:/work/workspace/sgpoker/logs/stat/sscard_add_stat.log"
 # scard_source_stat_path = "E:/work/workspace/sgpoker/logs/stat/scard_source_stat.log"
-user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+# user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+user_operation_midfile_path = "/data/game_server/logs/stat/user_operate_midfile.log"
 
-gacha_excel_path = "E:/work/workspace/sgpoker_resources/config/common/gacha.xls"
+# gacha_excel_path = "E:/work/workspace/sgpoker_resources/config/common/gacha.xls"
+gacha_excel_path = "/data/resources/config/common/gacha.xls"
 # 卡牌日志 原因字典
 # 获取卡牌字典
 cardLogReasonDic_Get = {'CARD_CREATE_ROLE': 201,  # 卡片获得_初次登录送普牌
@@ -66,11 +74,11 @@ SS_CARD_LABEL = 7
 gacha_type_dic = {}
 # 全局变量
 ssCardAddNum = 0
-ssCardAddUser = []
+ssCardAddUser = set()
 cardSourceNumDic = {}
 gacha_types = []
 gacha_types_names = []
-sscardSourceStatMap = {}
+scardSourceStatMap = {}
 userOperationNumDic = {}
 
 # 定义统计对象
@@ -104,8 +112,7 @@ def dayCardStat(jsonLine):
         if jsonLine["message"]["cardQuality"] >= SS_CARD_LABEL:
             ssCardAddNum += 1
             # 对获得SS卡的用户进行排重
-            if ssCardAddUser.index(jsonLine["message"]["charId"]) < 0:
-                ssCardAddUser.append(jsonLine["message"]["charId"])
+            ssCardAddUser.add(jsonLine["message"]["charId"])
 
         # 统计每日S卡以上来源方式
         # 卡牌类型需要时S级别及以上
@@ -137,8 +144,8 @@ def dayCardStat(jsonLine):
                 else:
                     cardSourceNumDic["CARD_COMB_ADD"] = 1
             elif (jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_GACHA_ADD")):
-                index = gacha_types.index(jsonLine["message"]["gachaCardType"])
-                type_name = gacha_types_names[index]
+                index = gacha_types.index(jsonLine["message"]["blessCardType"])
+                type_name = 'blessCardType_' + str(index)
                 if (cardSourceNumDic.has_key(type_name)):
                     cardSourceNumDic[type_name] += 1
                 else:
@@ -155,17 +162,17 @@ def dayCardStat(jsonLine):
             userOperationNumDic["CARD_GACHA_ADD"] += 1
         else:
             userOperationNumDic["CARD_GACHA_ADD"] = 1
-    elif jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_HECHENG_CONSUME_DEL"):
+    elif jsonLine["message"]["reason"] == cardLogReasonDic_Consume.get("CARD_HECHENG_CONSUME_DEL"):
         if (userOperationNumDic.has_key("CARD_HECHENG_CONSUME_DEL")):
             userOperationNumDic["CARD_HECHENG_CONSUME_DEL"] += 1
         else:
             userOperationNumDic["CARD_HECHENG_CONSUME_DEL"] = 1
-    elif jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CHANGE"):
+    elif jsonLine["message"]["reason"] == cardLogReasonDic_Other.get("CARD_CHANGE"):
         if (userOperationNumDic.has_key("CARD_CHANGE")):
             userOperationNumDic["CARD_CHANGE"] += 1
         else:
             userOperationNumDic["CARD_CHANGE"] = 1
-    elif jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_A_CHANGE"):
+    elif jsonLine["message"]["reason"] == cardLogReasonDic_Other.get("CARD_A_CHANGE"):
         if (userOperationNumDic.has_key("CARD_A_CHANGE")):
             userOperationNumDic["CARD_A_CHANGE"] += 1
         else:
@@ -182,6 +189,9 @@ def object2dict(obj):
 
 
 def loadGachaExcel():
+    global gacha_types
+    global gacha_types_names
+
     # 加载抽卡类型excel
     data = xlrd.open_workbook(gacha_excel_path)
     table = data.sheets()[3]
@@ -253,25 +263,26 @@ doc['type'] = statType['SSCARD_ADD_STAT']
 sscard_add_stat_object = SSCardAddStatBean(gameCode, serverId, regionId, ssCardAddNum, len(ssCardAddUser), timestamp)
 doc['message'] = object2dict(sscard_add_stat_object)
 # 向ES中put统计数据
-res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+res = es.index(index=index_name, doc_type=doc['type'], id=uuid.uuid1(), body=doc)
 if (not res['ok']):
     print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
         time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)
 
 
 # 封装卡牌来源统计对象
-sscardSourceStatMap["gameCode"] = gameCode
-sscardSourceStatMap["serverId"] = serverId
-sscardSourceStatMap["regionId"] = regionId
-sscardSourceStatMap["timestamp"] = timestamp
+scardSourceStatMap["gameCode"] = gameCode
+scardSourceStatMap["serverId"] = serverId
+scardSourceStatMap["regionId"] = regionId
+scardSourceStatMap["timestamp"] = timestamp
 for key, value in cardSourceNumDic.items():
-    sscardSourceStatMap[key] = value
+    scardSourceStatMap[key] = value
 
 doc['type'] = statType['SCARD_SOURCE_STAT']
-for key, value in sscardSourceStatMap.items():
+doc['message'] = {}
+for key, value in scardSourceStatMap.items():
     doc['message'][key] = value
 # 向ES中put统计数据
-res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+res = es.index(index=index_name, doc_type=doc['type'], id=uuid.uuid1(), body=doc)
 if (not res['ok']):
     print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
         time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)

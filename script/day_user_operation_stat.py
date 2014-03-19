@@ -4,14 +4,19 @@ import json
 import time
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # elasticsearch 连接参数
 es_host = 'localhost'
-index_name = 'stat_log-' + time.strftime("%Y-%m", )
+index_name = 'stat_log-' + time.strftime("%Y.%m", )
 statType = {
     'USER_OPERATION_STAT': 'user_operation_stat'
 }
@@ -23,7 +28,8 @@ doc = {
 }
 # 文件路径
 # user_operation_stat_path = "E:/work/workspace/sgpoker/logs/stat/user_operation_stat.log"
-user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+# user_operation_midfile_path = "E:/work/workspace/sgpoker/logs/stat/user_operate_midfile.log"
+user_operation_midfile_path = "/data/game_server/logs/stat/user_operate_midfile.log"
 # 全局变量
 userOperationStatList = []
 userOperationStatMap = {}
@@ -85,7 +91,9 @@ es = Elasticsearch([
 doc['type'] = statType['USER_OPERATION_STAT']
 for elem in userOperationStatList:
     doc['message'] = object2dict(elem)
-    res = es.index(index=index_name, doc_type=statType, id=uuid.uuid1(), body=doc)
+    res = es.index(index=index_name, doc_type=doc['type'], id=uuid.uuid1(), body=doc)
     if (not res['ok']):
         print "Elasticsearch put Error : timestamp->%s index->%s type->%s doc->%s" % (
             time.strftime("%Y-%m-%d %H:%M:%S", ), index_name, statType, doc)
+
+user_operation_midfile_file.truncate(0)

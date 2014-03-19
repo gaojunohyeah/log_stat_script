@@ -6,6 +6,7 @@ import time
 import os
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # print datetime.date.today()
 # st = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
 # finalcial_log_path = "E:/work/workspace/sgpoker/logs/stat/jade_log.log"
@@ -78,5 +79,13 @@ print datetime
 print time.strftime("%Y-%m",)
 
 print time.strftime("%Y-%m-%d %H:%M:%S",)
+
+statType = [1,2,3,4,5]
+
+print statType.index(5)
+
+print sys.argv[0]
+print sys.argv[1]
+print sys.argv[2]
 
 

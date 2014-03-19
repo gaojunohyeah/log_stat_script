@@ -6,14 +6,20 @@ import time
 import datetime
 import uuid
 from elasticsearch import Elasticsearch
+import sys
 # 基础变量
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
 timestamp = str(long(time.time() * 1000))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+if (len(sys.argv) == 4):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
 # 文件路径
 player_log_path = "E:/work/workspace/sgpoker/logs/stat/player_log.log"
+# player_log_path = "/data/game_server/logs/stat/player_log.log"
 
 # 玩家日志 原因 字典
 playerLogReasonDic = {'PL_CJ': 101,  # 角色创建
