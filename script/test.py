@@ -7,6 +7,7 @@ import os
 import uuid
 from elasticsearch import Elasticsearch
 import sys
+from dateutil import rrule
 # print datetime.date.today()
 # st = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
 # finalcial_log_path = "E:/work/workspace/sgpoker/logs/stat/jade_log.log"
@@ -49,19 +50,26 @@ import sys
 #     ])
 #
 #
-doc = {
-    'author': 'kimchy',
-    'text': 'Elasticsearch: cool. bonsai cool.',
-    'message':{
-        'test':1,
-        'time':'adfsd'
-    },
-    'timestamp': str(long(time.time() * 1000))
-}
+# doc = {
+#     'author': 'kimchy',
+#     'text': 'Elasticsearch: cool. bonsai cool.',
+#     'message':{
+#         'test':1,
+#         'time':'adfsd'
+#     },
+#     'timestamp': str(long(time.time() * 1000))
+# }
 # res = es.index(index="test-index", doc_type='tweet', id=1, body=doc)
 # print (res['ok'])
 #
-# res = es.get(index="test-index", doc_type='tweet', id='1')
+# res = es.exists(index="test-index", doc_type='tweet', id='2')
+# print res
+#
+# res = es.mget(body={'ids':[1,2,3,4,5]},index="test-index", doc_type='tweet')
+# for elem in res['docs']:
+#     print elem['_id'],elem['exists'],elem['_source']
+
+# res = es.get(index="test-index", doc_type='tweet', id='2')
 # print (res['_source'])
 #
 #
@@ -72,20 +80,38 @@ doc = {
 #
 # print 'ok'
 
-print "Elasticsearch put Error : doc->%s" % (doc)
+# print "Elasticsearch put Error : doc->%s" % (doc)
+#
+# print datetime
+#
+# print time.strftime("%Y-%m",)
+#
+# print time.strftime("%Y-%m-%d %H:%M:%S",)
 
-print datetime
+# statType = [1,2,3,4,5]
+#
+# print statType.index(5)
 
-print time.strftime("%Y-%m",)
+# print sys.argv[0]
+# print sys.argv[1]
+# print sys.argv[2]
 
-print time.strftime("%Y-%m-%d %H:%M:%S",)
+# todayZero = long(time.mktime(datetime.date.today().timetuple()) * 1000)
+# print long(time.time()*1000)
+# print todayZero
 
-statType = [1,2,3,4,5]
+d1 = datetime.datetime(2005, 2, 16)
+d2 = datetime.datetime(2004, 12, 31)
+print (d1 - d2).days
 
-print statType.index(5)
+starttime = datetime.datetime.fromtimestamp(int(1395368949982/1000))
+endtime = datetime.datetime.fromtimestamp(int(1395369949982/1000))
+print starttime
+print endtime
+print (endtime - starttime).seconds
 
-print sys.argv[0]
-print sys.argv[1]
-print sys.argv[2]
 
-
+hours = rrule.rrule(rrule.HOURLY, dtstart=starttime, until=endtime)
+days = rrule.rrule(rrule.DAILY, dtstart=starttime, until=endtime)
+print days.count()
+print hours.count()
