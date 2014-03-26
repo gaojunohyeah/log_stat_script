@@ -36,8 +36,8 @@ doc = {
     'type': ''
 }
 # 文件路径
-player_log_path = "E:/work/workspace/sgpoker/logs/stat/player_log.log"
-# player_log_path = "/data/game_server/logs/stat/player_log.log"
+# player_log_path = "E:/work/workspace/sgpoker/logs/stat/player_log.log"
+player_log_path = "/data/game_server/logs/stat/player_log.log"
 
 # 玩家日志 原因 字典
 playerLogReasonDic = {'PL_CJ': 101,  # 角色创建
@@ -72,7 +72,7 @@ es = Elasticsearch([
 # UserOnlineTimeStatBean
 class UserOnlineTimeStatBean(object):
     def __init__(self, gameCode, serverId, regionId, accountId, charId, charName,
-                 totalOnlineTime):
+                 totalOnlineTime, timestamp):
         self.gameCode = gameCode
         self.serverId = serverId
         self.regionId = regionId
@@ -80,6 +80,7 @@ class UserOnlineTimeStatBean(object):
         self.charId = charId
         self.charName = charName
         self.totalOnlineTime = totalOnlineTime
+        self.timestamp = timestamp
 
 
 # function : logtojson
@@ -127,7 +128,7 @@ def dayPlayerStat(jsonLine):
         if (not userBeanDic.has_key(id)):
             userBeanDic[id] = UserOnlineTimeStatBean(gameCode, serverId, regionId, accountId,
                                                             jsonLine["message"]["charId"],
-                                                            jsonLine["message"]["charName"], 0)
+                                                            jsonLine["message"]["charName"], 0, timestamp)
 
     # 登出日志
     if jsonLine["message"]["reason"] == playerLogReasonDic['PL_DC']:
@@ -147,7 +148,7 @@ def dayPlayerStat(jsonLine):
         if (not userBeanDic.has_key(id)):
             userBeanDic[id] = UserOnlineTimeStatBean(gameCode, serverId, regionId, accountId,
                                                             jsonLine["message"]["charId"],
-                                                            jsonLine["message"]["charName"], 0)
+                                                            jsonLine["message"]["charName"], 0, timestamp)
 
 
 # function : doOnlineTimeStat

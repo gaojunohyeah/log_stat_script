@@ -167,9 +167,9 @@ def dayDungeonStat(jsonLine):
         dungeonFailStarsStat[typeLabel][star] += 1
 
         # 添加关卡失败次数到用户操作统计中
-        if (not userOperationNumDic.has_key("DUNGEON_COMPLETE")):
-            userOperationNumDic["DUNGEON_COMPLETE"] = 0
-        userOperationNumDic["DUNGEON_COMPLETE"] += 1
+        if (not userOperationNumDic.has_key("DUNGEON_FAIL")):
+            userOperationNumDic["DUNGEON_FAIL"] = 0
+        userOperationNumDic["DUNGEON_FAIL"] += 1
 
 
 # 加载关卡excel配置信息
@@ -229,12 +229,12 @@ for line in open(dungeon_log_path):
 
 
 # 输出关卡操作统计数据至用户操作中间文件
-card_operate_file = open(user_operation_midfile_path, 'a')
+dungion_operate_file = open(user_operation_midfile_path, 'a')
 try:
     for key, value in userOperationNumDic.items():
-        card_operate_file.write("{\"" + str(key) + "\":" + str(value) + "}\n")
+        dungion_operate_file.write("{\"" + str(key) + "\":" + str(value) + "}\n")
 finally:
-    card_operate_file.close()
+    dungion_operate_file.close()
 
 
 # 初始化ES连接

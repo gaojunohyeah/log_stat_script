@@ -65,12 +65,12 @@ def rechargelogtojson(line):
 
 
 class RechargeStatBean(object):
-    def __init__(self, gameCode, serverId, regionId, userId, rechargeType, totalCreditAmount, totalRechargeCnt,
+    def __init__(self, gameCode, serverId, regionId, accountId, rechargeType, totalCreditAmount, totalRechargeCnt,
                  firstRechargeTimestamp, lastRechargeTimestamp, registerTimestamp, lastLoginTimestamp, timestamp):
         self.gameCode = gameCode
         self.serverId = serverId
         self.regionId = regionId
-        self.userId = userId
+        self.accountId = accountId
         self.rechargeType = rechargeType
         self.totalCreditAmount = totalCreditAmount
         self.totalRechargeCnt = totalRechargeCnt

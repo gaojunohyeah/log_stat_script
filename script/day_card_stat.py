@@ -118,7 +118,7 @@ def dayCardStat(jsonLine):
         # 卡牌类型需要时S级别及以上
         if jsonLine["message"]["cardQuality"] >= S_CARD_LABEL:
             if (jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CREATE_ROLE")
-                and jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CREATE_ROLE_A")):
+                or jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_CREATE_ROLE_A")):
                 if (cardSourceNumDic.has_key("CARD_CREATE_ROLE")):
                     cardSourceNumDic["CARD_CREATE_ROLE"] += 1
                 else:
@@ -144,8 +144,8 @@ def dayCardStat(jsonLine):
                 else:
                     cardSourceNumDic["CARD_COMB_ADD"] = 1
             elif (jsonLine["message"]["reason"] == cardLogReasonDic_Get.get("CARD_GACHA_ADD")):
-                index = gacha_types.index(jsonLine["message"]["blessCardType"])
-                type_name = 'blessCardType_' + str(index)
+                # index = gacha_types.index(jsonLine["message"]["blessCardType"])
+                type_name = 'blessCardType_' + str(jsonLine["message"]["blessCardType"])
                 if (cardSourceNumDic.has_key(type_name)):
                     cardSourceNumDic[type_name] += 1
                 else:

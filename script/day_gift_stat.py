@@ -67,12 +67,12 @@ for line in open(gift_log_path):
 
 
 # 输出卡牌操作统计数据至用户操作中间文件
-card_operate_file = open(user_operation_midfile_path, 'a')
+user_operate_file = open(user_operation_midfile_path, 'a')
 try:
     for key, value in userOperationNumDic.items():
-        card_operate_file.write("{\"" + str(key) + "\":" + str(value) + "}\n")
+        user_operate_file.write("{\"" + str(key) + "\":" + str(value) + "}\n")
 finally:
-    card_operate_file.close()
+    user_operate_file.close()
 
 
 
