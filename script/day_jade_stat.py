@@ -12,8 +12,15 @@ import sys
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
-timestamp = str(long(time.time() * 1000))
+now = datetime.date.today()
+d = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+timestamp = str(long(time.mktime(d.timetuple()) * 1000 - 1))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+if (len(sys.argv) == 5):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
+    timestamp = str(sys.argv[4])
 if (len(sys.argv) == 4):
     gameCode = str(sys.argv[1])
     regionId = str(sys.argv[2])
@@ -50,7 +57,8 @@ jadeLogReasonDic_Gain = {'JADE_GAIN_MDDR': 401,
                          'JADE_COL': 404,
                          'JADE_DUNGEON': 405,
                          'JADE_GAIN_GM': 411,
-                         'JADE_CHARGE_GIFT': 414
+                         'JADE_CHARGE_GIFT': 414,
+                         'JADE_GET_QUEST': 418
 }
 # 消耗玉石字典
 jadeLogReasonDic_Consume = {'JADE_GACHA': 406,
@@ -59,7 +67,9 @@ jadeLogReasonDic_Consume = {'JADE_GACHA': 406,
                             'JADE_COST': 409,
                             'JADE_BUQIAN': 410,
                             'JADE_RAISED': 412,
-                            'JADE_LVLLIMIT': 413
+                            'JADE_LVLLIMIT': 413,
+                            'JADE_FORCE_IMPOSE': 415,
+                            'JADE_YUEKA': 416
 }
 # 全局变量
 sum = 0
@@ -90,12 +100,19 @@ def jadelogtojson(line):
         #print s["message"]["charId"]
         if s["message"]["param"].split(";")[1] == 0:
             new_charge += 1
+    # 月卡也算充值过
+    if s["message"]["reason"] == jadeLogReasonDic_Consume.get('JADE_YUEKA'):
+        if s["message"]["useJade"] < 0:
+            s["message"]["useJade"] = -s["message"]["useJade"]
+        sum += s["message"]["useJade"]
     # 消耗玉石的日志类型
     if s["message"]["reason"] in jadeLogReasonDic_Consume.values():
         #print s["message"]["charId"]
         if s["message"]["jadetype"] == 1:
             consume_money += s["message"]["useJade"]
         elif s["message"]["jadetype"] == 2:
+            if s["message"]["useJade"] > 0:
+                s["message"]["useJade"] = -s["message"]["useJade"]
             consumeRMB += s["message"]["useJade"]
         consumelist.add(s["message"]["charId"])
 
@@ -141,7 +158,7 @@ except MySQLdb.Error, e:
 # FinancialStatBean
 class FinancialStatBean(object):
     def __init__(self, gameCode, serverId, regionId, consume_money, new_charge, totalChargeUser, totalConsumeUser,
-                 totalgmStone, totalStone, totalRechargeStone, arpu, timestamp, consumeRMB):
+                 totalgmStone, totalStone, totalRechargeStone, totalRechargeRMB, arpu, timestamp, consumeRMB):
         self.gameCode = gameCode
         self.serverId = serverId
         self.regionId = regionId
@@ -152,6 +169,7 @@ class FinancialStatBean(object):
         self.totalgmStone = totalgmStone
         self.totalStone = totalStone
         self.totalRechargeStone = totalRechargeStone
+        self.totalRechargeRMB = totalRechargeRMB
         self.arpu = arpu
         self.timestamp = timestamp
         #self.totalVip=totalVip
@@ -173,6 +191,7 @@ class ConsumePointStatBean(object):
         self.consumePeopleNum = consumePeopleNum
         self.consumeTimesNum = consumeTimesNum
         self.consumeJadeNum = consumeJadeNum
+
 
 # 将object对象转换为字典
 def object2dict(obj):
@@ -223,17 +242,18 @@ for line in open(jade_log_path):
 # 初始化ES连接
 es = Elasticsearch([
     {'host': es_host},
-    ])
+])
 
 
 # 封装每日收入统计对象
 f = FinancialStatBean
 if (0 == len(chargelist)):
     f = FinancialStatBean(gameCode, serverId, regionId, -consume_money, new_charge, len(chargelist), len(consumelist),
-                          str(totalgmStone), str(totalStone), sum, sum, timestamp, -consumeRMB)
+                          str(totalgmStone), str(totalStone), sum, sum, sum, timestamp, -consumeRMB)
 else:
     f = FinancialStatBean(gameCode, serverId, regionId, -consume_money, new_charge, len(chargelist), len(consumelist),
-                          str(totalgmStone), str(totalStone), sum, sum / len(chargelist), timestamp, -consumeRMB)
+                          str(totalgmStone), str(totalStone), sum, sum / 10, sum / (10 * len(chargelist)), timestamp,
+                          -consumeRMB)
 
 doc['type'] = statType['FINANCIAL_STAT']
 doc['message'] = object2dict(f)

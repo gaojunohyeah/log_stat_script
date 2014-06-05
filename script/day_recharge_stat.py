@@ -8,8 +8,13 @@ import sys
 import uuid
 from elasticsearch import Elasticsearch
 # init var of base
-timestamp = str(long(time.time() * 1000))
+now = datetime.date.today()
+d = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+timestamp = str(long(time.mktime(d.timetuple()) * 1000 - 1))
 yestoday = str(datetime.date.today() - datetime.timedelta(days=1))
+if (len(sys.argv) == 3):
+    gameCode = str(sys.argv[1])
+    timestamp = str(sys.argv[2])
 if (len(sys.argv) == 2):
     yestoday = str(sys.argv[1])
 yestodayLogName = "." + yestoday + ".log"
@@ -44,6 +49,14 @@ def rechargelogtojson(line):
     rechargeType = str(s["message"]["rechargeType"])
     creditAmount = float(s["message"]["creditAmount"])
     timestamp = long(s["message"]["timestamp"])
+    if (not s["message"].has_key("orderType")):
+        orderType = 0
+    else:
+        orderType = str(s["message"]["orderType"])
+    if (not s["message"].has_key("platformCoinAmount")):
+        platformCoinAmount = 0
+    else:
+        platformCoinAmount = long(s["message"]["platformCoinAmount"])
     #registerTimestamp = long(s["message"]["registerTimestamp"])
     if (not s["message"].has_key("registerTimestamp")):
         registerTimestamp = long(0)
@@ -56,17 +69,20 @@ def rechargelogtojson(line):
     # if stat info has this reason's info, if not, init one.
     if (not rechargeMap.has_key(key)):
         rechargeMap[key] = RechargeStatBean(gameCode, serverId, regionId, userId, rechargeType, creditAmount, 1,
-                                            timestamp, timestamp, str(registerTimestamp), str(lastLoginTimestamp), timestamp)
+                                            timestamp, timestamp, str(registerTimestamp), str(lastLoginTimestamp),
+                                            timestamp, platformCoinAmount)
     else:
         rechargeMap[key].totalCreditAmount += creditAmount
         rechargeMap[key].totalRechargeCnt += 1
+        rechargeMap[key].platformCoinAmount += platformCoinAmount
         if (rechargeMap[key].lastRechargeTimestamp < timestamp):
             rechargeMap[key].lastRechargeTimestamp = timestamp
 
 
 class RechargeStatBean(object):
     def __init__(self, gameCode, serverId, regionId, accountId, rechargeType, totalCreditAmount, totalRechargeCnt,
-                 firstRechargeTimestamp, lastRechargeTimestamp, registerTimestamp, lastLoginTimestamp, timestamp):
+                 firstRechargeTimestamp, lastRechargeTimestamp, registerTimestamp, lastLoginTimestamp, timestamp,
+                 platformCoinAmount):
         self.gameCode = gameCode
         self.serverId = serverId
         self.regionId = regionId
@@ -79,6 +95,7 @@ class RechargeStatBean(object):
         self.registerTimestamp = registerTimestamp
         self.lastLoginTimestamp = lastLoginTimestamp
         self.timestamp = timestamp
+        self.platformCoinAmount = platformCoinAmount
 
 
 def object2dict(obj):
@@ -108,7 +125,7 @@ for line in open(recharge_log_path):
 # 初始化ES连接
 es = Elasticsearch([
     {'host': es_host},
-    ])
+])
 
 # 封装每日充值统计对象
 doc['type'] = statType['RECHARGE_STAT']

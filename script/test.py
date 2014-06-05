@@ -100,18 +100,75 @@ from dateutil import rrule
 # print long(time.time()*1000)
 # print todayZero
 
-d1 = datetime.datetime(2005, 2, 16)
-d2 = datetime.datetime(2004, 12, 31)
-print (d1 - d2).days
+# d1 = datetime.datetime(2005, 2, 16)
+# d2 = datetime.datetime(2004, 12, 31)
+# print (d1 - d2).days
+#
+# starttime = datetime.datetime.fromtimestamp(int(1395368949982/1000))
+# endtime = datetime.datetime.fromtimestamp(int(1395369949982/1000))
+# print starttime
+# print endtime
+# print (endtime - starttime).seconds
+#
+#
+# hours = rrule.rrule(rrule.HOURLY, dtstart=starttime, until=endtime)
+# days = rrule.rrule(rrule.DAILY, dtstart=starttime, until=endtime)
+# print days.count()
+# print hours.count()
 
-starttime = datetime.datetime.fromtimestamp(int(1395368949982/1000))
-endtime = datetime.datetime.fromtimestamp(int(1395369949982/1000))
-print starttime
-print endtime
-print (endtime - starttime).seconds
+
+# now = datetime.date.today()
+# d = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+# t = long(time.mktime(d.timetuple()) * 1000 - 1)
+#
+#
+# print t
 
 
-hours = rrule.rrule(rrule.HOURLY, dtstart=starttime, until=endtime)
-days = rrule.rrule(rrule.DAILY, dtstart=starttime, until=endtime)
-print days.count()
-print hours.count()
+
+# import json
+# jade_log_path = "/data/game_server/logs/stat/jade_log.log"
+# for line in open(jade_log_path):
+#     s = json.loads(line)
+#     if s["message"]["jadeType"] == 2:
+#         print  s["message"]["reason"],s["message"]["useJade"]
+
+
+search_doc = {
+    "query": {
+        "filtered": {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "query_string": {
+                                "query": "type:\"financial_stat\" AND message.gameCode:pokersg"
+                            }
+                        }
+                    ]
+                }
+            },
+            "filter": {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "from": 1401863667848,
+                                    "to": 1401950067848
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "size": 100000
+}
+
+
+res = es.search(index="test-index", body=search_doc)
+print("Got %d Hits:" % res['hits']['total'])
+for hit in res['hits']['hits']:
+    print("%(timestamp)s %(author)s: %(text)s" % hit["_source"])

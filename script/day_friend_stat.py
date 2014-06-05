@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import MySQLdb
 import time
+import datetime
 import uuid
 from elasticsearch import Elasticsearch
 import sys
@@ -9,7 +10,14 @@ import sys
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
-timestamp = str(long(time.time() * 1000))
+now = datetime.date.today()
+d = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+timestamp = str(long(time.mktime(d.timetuple()) * 1000 - 1))
+if (len(sys.argv) == 5):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
+    timestamp = str(sys.argv[4])
 if (len(sys.argv) == 4):
     gameCode = str(sys.argv[1])
     regionId = str(sys.argv[2])

@@ -12,8 +12,15 @@ import sys
 gameCode = "pokersg"
 serverId = "1001"
 regionId = "1"
-timestamp = str(long(time.time() * 1000))
+now = datetime.date.today()
+d = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+timestamp = str(long(time.mktime(d.timetuple()) * 1000 - 1))
 yestodayLogName = "." + str(datetime.date.today() - datetime.timedelta(days=1)) + ".log"
+if (len(sys.argv) == 5):
+    gameCode = str(sys.argv[1])
+    regionId = str(sys.argv[2])
+    serverId = str(sys.argv[3])
+    timestamp = str(sys.argv[4])
 if (len(sys.argv) == 4):
     gameCode = str(sys.argv[1])
     regionId = str(sys.argv[2])
@@ -50,14 +57,23 @@ cardLogReasonDic_Get = {'CARD_CREATE_ROLE': 201,  # 卡片获得_初次登录送
                         'CARD_GACHA_ADD': 204,  # 卡片获得_抽奖
                         'CARD_COMB_ADD': 205,  # 卡片获得_进化
                         'CARD_GIFT_ADD': 206,  # 卡片获得_礼包
-                        'CARD_WEIXIN': 219  # 卡牌获得_微信
+                        'CARD_WEIXIN': 219,  # 卡牌获得_微信
+                        'CARD_SAODANG': 220,  # 卡牌获得扫荡
+                        'CARD_IMPOSE': 221,  # 卡牌获得强征
+                        'CARD_QUEST': 222,  # 卡牌获得_每日/主线任务
+                        'EQUIPMENT_QUEST': 223,  # 装备获得_每日/主线任务
+                        'EQUIPMENT_DROP': 224,  # 掉落获得装备
+                        'EQUIPMENT_COMBINE': 225,  # 合成装备
+                        'EQUIPMENT_GIFT': 227,  # 礼包获得装备
+                        'EQUIPMENT_GM': 228  # 后台发装备
 }
 # 消耗卡牌字典
 cardLogReasonDic_Consume = {'CARD_HECHENG_CONSUME_DEL': 207,  # 卡片消耗_合成材料
                             'CARD_IMP_DEL': 208,  # 卡片消耗_进化卡
                             'CARD_IMP_CONSUME_DEL': 209,  # 卡片消耗_进化材料
                             'CARD_SELL_DEL': 210,  # 卡片消耗_出售
-                            'CARD_GM': 218  # 卡片删除_gm后台添加/删除
+                            'CARD_GM': 218,  # 卡片删除_gm后台添加/删除
+                            'EQUIPMENT_SELL': 226  # 出售装备
 }
 # 其他卡牌字典
 cardLogReasonDic_Other = {'CARD_CHANGE': 211,  # 普通卡片替换
@@ -69,8 +85,8 @@ cardLogReasonDic_Other = {'CARD_CHANGE': 211,  # 普通卡片替换
                           'CARD_SKILL_LVLUP': 217  # 卡片技能升级
 }
 # 其他静态常量
-S_CARD_LABEL = 5
-SS_CARD_LABEL = 7
+S_CARD_LABEL = 3
+SS_CARD_LABEL = 4
 gacha_type_dic = {}
 # 全局变量
 ssCardAddNum = 0
